@@ -71,9 +71,9 @@ select _Create more like this_ from the ec2 console.
 - Click _Review and Launch_
 - Double check your configuration and click "Launch"
 
-__Note: The Following ports to be accessable between nodes: 1883 2379 2380 4001
+_Note: The Following ports to be accessable between nodes: 1883 2379 2380 4001
 4369 5671 5672 7001 8883 15672 25672 61613 61614. Also, external access to
-15672 is required if you would like to access rabbitmq management interface.__
+15672 is required if you would like to access rabbitmq management interface._
 
 ## Verify cluster
 
