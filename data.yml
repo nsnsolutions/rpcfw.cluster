@@ -1,0 +1,12 @@
+# J2 Variables for use with template engine.
+# Values wrapped with !-- --! are intended to be changed.
+---
+TOKEN: !-- A Valid Token from https://discovery.etcd.io/new?size=<SIZE> --!
+
+ECS_CLUSTER: !-- Ecs Cluster Name --!
+ECS_VERSION: latest
+
+ESB_VERSION: latest
+ESB_DEFAULT_PASS: !-- RabbitMQ Password --!
+ESB_DEFAULT_USER: !-- RabbitMQ Admin User --!
+ESB_NODE_TYPE: ram

@@ -1,0 +1,95 @@
+#cloud-config
+coreos:
+  etcd2:
+    discovery: "https://discovery.etcd.io/{{ TOKEN }}"
+    advertise-client-urls: http://$private_ipv4:2379,http://$private_ipv4:4001
+    initial-advertise-peer-urls: http://$private_ipv4:2380
+    listen-client-urls: http://0.0.0.0:2379,http://0.0.0.0:4001
+    listen-peer-urls: http://$private_ipv4:2380,http://$private_ipv4:7001
+  units:
+    - name: etcd2.service
+      command: start
+    - name: fleet.service
+      command: start
+    - name: locksmithd.service
+      command: stop
+    - name: amazon-ecs-routeTable.service
+      command: start
+      content: |
+        [Unit]
+        Description=Install amazon IAM Role route table.
+
+        [Service]
+        ExecStart=/usr/sbin/sysctl -w net.ipv4.conf.all.route_localnet=1
+        ExecStartPost=/usr/sbin/iptables -t nat -A PREROUTING -p tcp -d 169.254.170.2 --dport 80 -j DNAT --to-destination 127.0.0.1:51679
+        ExecStartPost=/usr/sbin/iptables -t nat -A OUTPUT -d 169.254.170.2 -p tcp -m tcp --dport 80 -j REDIRECT --to-ports 51679
+    - name: amazon-ecs-agent.service
+      command: start
+      runtime: true
+      content: |
+        [Unit]
+        Description=AWS ECS Agent
+        Documentation=https://docs.aws.amazon.com/AmazonECS/latest/developerguide/
+        Requires=docker.socket
+        After=docker.socket
+
+        [Service]
+        Restart=on-failure
+        RestartSec=30
+        RestartPreventExitStatus=5
+        SyslogIdentifier=ecs-agent
+        ExecStartPre=-/bin/mkdir -p /var/log/ecs /var/ecs-data /etc/ecs
+        ExecStartPre=-/usr/bin/touch /etc/ecs/ecs.config
+        ExecStartPre=-/usr/bin/docker kill ecs-agent
+        ExecStartPre=-/usr/bin/docker rm ecs-agent
+        ExecStartPre=/usr/bin/docker pull amazon/amazon-ecs-agent:{{ ECS_VERSION }}
+        ExecStart=/usr/bin/docker run --name ecs-agent \
+                                      --net=host \
+                                      --env-file=/etc/ecs/ecs.config \
+                                      --volume=/var/run/docker.sock:/var/run/docker.sock \
+                                      --volume=/var/log/ecs:/log \
+                                      --volume=/var/ecs-data:/data \
+                                      --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro \
+                                      --volume=/run/docker/execdriver/native:/var/lib/docker/execdriver/native:ro \
+                                      --publish=127.0.0.1:51678:51678 \
+                                      --env=ECS_ENABLE_TASK_IAM_ROLE=true \
+                                      --env=ECS_LOGFILE=/log/ecs-agent.log \
+                                      --env=ECS_LOGLEVEL=info \
+                                      --env=ECS_DATADIR=/data \
+                                      --env=ECS_CLUSTER={{ ECS_CLUSTER }} \
+                                      amazon/amazon-ecs-agent:{{ ECS_VERSION }}
+    - name: esb-node.service
+      command: start
+      runtime: true
+      content: |
+        [Unit]
+        Description=Enterprise Service Bus RabbitMQ Node
+        Documentation=https://github.com/aweber/rabbitmq-autocluster/blob/master/README.rst
+        Requires=docker.socket
+        After=docker.socket
+
+        [Service]
+        Restart=on-failure
+        RestartSec=30
+        RestartPreventExitStatus=5
+        SyslogIdentifier=esb-node
+        ExecStartPre=-/usr/bin/mkdir -p /srv/esb
+        ExecStartPre=-/usr/bin/etcdctl mkdir /esb/default
+        ExecStartPre=-/usr/bin/docker kill esb-node
+        ExecStartPre=-/usr/bin/docker rm esb-node
+        ExecStartPre=/usr/bin/docker pull ilaird/rabbitmq-autocluster:{{ ESB_VERSION }}
+        ExecStart=/usr/bin/docker run --name=esb-node \
+                                      --net=host \
+                                      -v /srv/esb:/var/lib/rabbitmq \
+                                      --env=RABBITMQ_ERLANG_COOKIE={{ TOKEN }} \
+                                      --env=RABBITMQ_DEFAULT_USER={{ ESB_DEFAULT_USER }} \
+                                      --env=RABBITMQ_DEFAULT_PASS={{ ESB_DEFAULT_PASS }} \
+                                      --env=RABBITMQ_NODE_TYPE={{ ESB_NODE_TYPE }} \
+                                      --env=CLUSTER_PARTITION_HANDLING="autoheal" \
+                                      --env=AUTOCLUSTER_TYPE=etcd \
+                                      --env=AUTOCLUSTER_FAILURE=stop \
+                                      --env=ETCD_SCHEME=http \
+                                      --env=ETCD_HOST=127.0.0.1 \
+                                      --env=ETCD_PREFIX=esb \
+                                      --env=ETCD_PORT=2379 \
+                                      ilaird/rabbitmq-autocluster:{{ ESB_VERSION }}
