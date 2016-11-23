@@ -93,3 +93,25 @@ coreos:
                                       --env=ETCD_PREFIX=esb \
                                       --env=ETCD_PORT=2379 \
                                       ilaird/rabbitmq-autocluster:{{ ESB_VERSION }}
+    - name: logspout.service
+      command: start
+      runtime: true
+      content: |
+        [Unit]
+        Description=Log routing for Docker container logs
+        Documentation=https://github.com/gliderlabs/logspout/blob/master/README.md
+        Requires=docker.socket
+        After=docker.socket
+
+        [Service]
+        Restart=on-failure
+        RestartSec=30
+        RestartPreventExitStatus=5
+        SyslogIdentifier=logspout-service
+        ExecStartPre=-/usr/bin/docker kill logger
+        ExecStartPre=-/usr/bin/docker rm logger
+        ExecStartPre=/usr/bin/docker pull gliderlabs/logspout:latest
+        ExecStart=/usr/bin/docker run --name=logger \
+                                      -v /var/run/docker.sock:/var/run/docker.sock \
+                                      gliderlabs/logspout:latest \
+                                      syslog://{{ SYSLOG_SERVER }}
