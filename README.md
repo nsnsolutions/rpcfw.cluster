@@ -13,7 +13,7 @@ have a cluster created.
 - Go to [Amazon ECS](https://us-west-2.console.aws.amazon.com/ecs/)
 - Verify your region is what you want.
 - Click _Create Cluster_
-- Type in a cluster name and save it. We will refer to this name as `ECS_CLUSTER`
+- Type in a cluster name and save it. We will refer to this name as `CLUSTER`
 
 ## Get a CoreOS Cluster Token
 
@@ -36,12 +36,7 @@ The ecs-rabbitmq-cloud-init.j2 template is a jinja2 template.
 
 - Save a copy the ecs-rabbitmq-cloud-init.j2 template named `user-data.yaml`
 - Repalce all instances of `{{ TOKEN }}` with `TOKEN`
-- Repalce all instances of `{{ ECS_CLUSTER }}` with `ECS_CLUSTER`
-- Replace all instances of `{{ ECS_VERSION }}` with "latest"
-- Replace all instances of `{{ ESB_VERSION }}` with "latest"
-- Replace all instances of `{{ ESB_DEFAULT_PASS }}` with the appropriate password
-- Replace all instances of `{{ ESB_DEFAULT_USER }}` with the appropriate username
-- Replace all instances of `{{ ESB_NODE_TYPE }}` with "ram"
+- Repalce all instances of `{{ CLUSTER }}` with `CLUSTER`
 - Save the changes
 
 ## Create ec2 Instances
@@ -72,8 +67,7 @@ select _Create more like this_ from the ec2 console.
 - Double check your configuration and click "Launch"
 
 _Note: The Following ports to be accessable between nodes: 1883 2379 2380 4001
-4369 5671 5672 7001 8883 15672 25672 61613 61614. Also, external access to
-15672 is required if you would like to access rabbitmq management interface._
+4369 7001 8883 61613 61614._
 
 ## Verify cluster
 
@@ -82,9 +76,7 @@ It might take about a minuit for the new hosts to become available.
 - Go to [Amazon Ec2](https://us-west-2.console.aws.amazon.com/ec2/)
 - Verify your new instances are starting up.
 - Select connect on any node and copy the public DNS name.
-- In a new browser tag, navigate to that DNS name on port 15672.
-- Login to RMQ using the `ESB_DEFAULT_USER` and `ESB_DEFAULT_PASS` set in step [Create the Cloud-Init.yaml file]
-- Verify the number of nodes under the _Nodes_ section in the overview dashboard.
+- SSH into the server and type `etcdctl cluster-health`. You should see _Cluster is healthy_
 - Go to [Amazon ECS](https://us-west-2.console.aws.amazon.com/ecs/)
 - Make sure the number of servers reflects the changes you made.
 
