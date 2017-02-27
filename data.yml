@@ -3,3 +3,5 @@
 ---
 TOKEN: !-- ETCD Bootstrap Token --!
 CLUSTER: !-- Cluster Name --!
+EFS_VOLUME: !-- Storage Volume --!
+STAGE: !-- Stage Name --!

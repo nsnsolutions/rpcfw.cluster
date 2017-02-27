@@ -85,6 +85,6 @@ coreos:
     - name: mnt-efs.mount
       content: |
         [Mount]
-        What=AZ_ZONE.fs-9791583e.efs.us-west-2.amazonaws.com:/{{ STAGE }}/
+        What={{ EFS_VOLUME }}:/{{ STAGE }}/
         Where=/mnt/efs
         Type=nfs
