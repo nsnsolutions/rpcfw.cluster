@@ -25,6 +25,27 @@ coreos:
     - name: locksmithd.service
       command: stop
 
+    - name: sweep-exited-containers.service
+      content: |
+        [Unit]
+        Description=Cleans up old, exited, containers that are only taking up disk space.
+
+        [Service]
+        Type=oneshot
+        ExecStart=/usr/bin/sh -c '[ -n "$(docker ps -a --filter \"status=exited\" --format \"{{.ID}}\")" ] && docker rm $(docker ps -a --filter "status=exited" --format "{{.ID}}") && echo "ok" || echo "none"'
+
+    - name: sweep-exited-containers.timer
+      command: start
+      content: |
+        [Unit]
+        Description=Run sweep-exited-containers.service every 5 minutes
+
+        [Timer]
+        OnCalendar=*:0/1
+
+        [Install]
+        WantedBy=multi-user.target
+
     - name: amazon-ecs-routeTable.service
       command: start
       content: |
